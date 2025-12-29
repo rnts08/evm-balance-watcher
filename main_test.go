@@ -11,6 +11,10 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/crypto"
 )
 
 func TestTruncateString(t *testing.T) {
@@ -512,9 +516,32 @@ func TestFetchChainData_RPCFailover(t *testing.T) {
 }
 
 func TestFetchTransactions_Integration(t *testing.T) {
-	targetAddress := "0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B"
-	fromAddress := "0x1234567890123456789012345678901234567890"
-	txHash := "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890"
+	// Generate valid tx for signature verification
+	key, _ := crypto.GenerateKey()
+	fromAddr := crypto.PubkeyToAddress(key.PublicKey)
+	fromAddress := fromAddr.Hex()
+
+	targetAddr := common.HexToAddress("0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B")
+	targetAddress := targetAddr.Hex()
+
+	// 1 ETH, 21000 gas, 20 Gwei
+	txData := types.NewTransaction(
+		1,
+		targetAddr,
+		big.NewInt(1000000000000000000),
+		21000,
+		big.NewInt(20000000000),
+		nil,
+	)
+
+	signer := types.NewLondonSigner(big.NewInt(1))
+	signedTx, err := types.SignTx(txData, signer, key)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	sigV, sigR, sigS := signedTx.RawSignatureValues()
+	txHash := signedTx.Hash().Hex()
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var req struct {
@@ -533,6 +560,7 @@ func TestFetchTransactions_Integration(t *testing.T) {
 		case "eth_chainId":
 			result = "0x1" // Chain ID 1
 		case "eth_getBlockByNumber":
+			reqBlockNum, _ := req.Params[0].(string)
 			isFull, _ := req.Params[1].(bool)
 			blockHeader := map[string]interface{}{
 				"number":           "0x1000",
@@ -549,35 +577,39 @@ func TestFetchTransactions_Integration(t *testing.T) {
 				"nonce":            "0x0000000000000000",
 				"stateRoot":        "0x0000000000000000000000000000000000000000000000000000000000000000",
 				"receiptsRoot":     "0x0000000000000000000000000000000000000000000000000000000000000000",
-				"transactionsRoot": "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+				"transactionsRoot": "0x0000000000000000000000000000000000000000000000000000000000000001", // Non-empty root
 				"logsBloom":        "0x" + strings.Repeat("00", 256),
+				"transactions":     []interface{}{},
 			}
 
-			if isFull {
-				// Response for client.BlockByNumber
-				blockHeader["transactions"] = []map[string]interface{}{
-					{
-						"from":             fromAddress,
-						"to":               targetAddress,
-						"hash":             txHash,
-						"value":            "0xde0b6b3a7640000", // 1 ETH
-						"gas":              "0x5208",            // 21000
-						"gasPrice":         "0x4a817c800",       // 20 Gwei
-						"nonce":            "0x1",
-						"blockNumber":      "0x1000",
-						"blockHash":        "0x0000000000000000000000000000000000000000000000000000000000000001",
-						"transactionIndex": "0x0",
-						"input":            "0x",
-						"v":                "0x25",
-						"r":                "0x4f3a97e9a3a9f647216a200735b25695934e9b1a2063b2a63633e0de53ad8f3b",
-						"s":                "0x1b959a3d30f14f8a34079b5193d96a44573139485421591d820458b38014a721",
-					},
+			// Only return the tx for block 0x1000
+			if reqBlockNum == "0x1000" || reqBlockNum == "" {
+				if isFull {
+					blockHeader["transactions"] = []map[string]interface{}{
+						{
+							"from":             fromAddress,
+							"to":               targetAddress,
+							"hash":             txHash,
+							"value":            "0xde0b6b3a7640000", // 1 ETH
+							"gas":              "0x5208",            // 21000
+							"gasPrice":         "0x4a817c800",       // 20 Gwei
+							"nonce":            "0x1",
+							"blockNumber":      "0x1000",
+							"blockHash":        "0x0000000000000000000000000000000000000000000000000000000000000001",
+							"transactionIndex": "0x0",
+							"input":            "0x",
+							"v":                "0x" + sigV.Text(16),
+							"r":                "0x" + sigR.Text(16),
+							"s":                "0x" + sigS.Text(16),
+							"type":             "0x0",
+						},
+					}
 				}
-				result = blockHeader
 			} else {
-				// Response for client.HeaderByNumber
-				result = blockHeader
+				// For other blocks, empty transactions
+				blockHeader["transactionsRoot"] = "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421" // Empty root
 			}
+			result = blockHeader
 		default:
 			result = "0x0"
 		}
