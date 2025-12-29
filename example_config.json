@@ -13,10 +13,10 @@
       "name": "Whale #3"
     },
     {
-      "address": "0xbc9b1e338fadf78c6a5667d1efb11c75b627a5fd",
+      "address": "0xbc9b1e338fadf78c6a5667d1efb11c75b627a5fd"
     },
     {
-      "address": "0x5ce44113b58b4e010902bc595be49b4d9486b1bc",
+      "address": "0x5ce44113b58b4e010902bc595be49b4d9486b1bc"
     }
   ],
   "chains": [
@@ -83,5 +83,6 @@
   "privacy_timeout_seconds": 0,
   "fiat_decimals": 2,
   "token_decimals": 2,
-  "cycle_seconds": 15
+  "auto_cycle_enabled": true,
+  "auto_cycle_interval_seconds": 15
 }

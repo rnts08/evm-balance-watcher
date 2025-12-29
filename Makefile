@@ -78,6 +78,8 @@ clean:
 	@$(GOCLEAN)
 	@rm -f $(BINARY_NAME)
 	@rm -rf dist
+	@rm -f *.bak
+	@echo "Cleaned."
 
 # Format the code
 fmt:
