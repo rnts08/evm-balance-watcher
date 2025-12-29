@@ -17,7 +17,7 @@ BUILDFLAGS = -trimpath $(LDFLAGS)
 # Release version - can be overridden e.g. `make release VERSION=v1.0.0`
 VERSION ?= $(shell cat VERSION | tr -d '[:space:]')
 
-.PHONY: all build run clean test unittest fmt vet help cross-compile release bump
+.PHONY: all build run clean test unittest fmt vet lint help cross-compile release bump
 
 all: build
 
@@ -60,7 +60,7 @@ run: build
 # Run the configuration test
 test:
 	@echo "Running configuration test..."
-	@$(GORUN) . -test
+	@$(GORUN) . -test -config test_config.json
 
 # Run unit tests
 unittest:
@@ -91,6 +91,11 @@ vet:
 	@echo "Vetting code..."
 	@$(GOVET)
 
+# Lint the code
+lint:
+	@echo "Linting code..."
+	@golangci-lint run
+
 # Help
 help:
 	@echo ""
@@ -107,5 +112,6 @@ help:
 	@echo "  clean          Remove the built binary and dist directory"
 	@echo "  fmt            Format the source code"
 	@echo "  vet            Run go vet to check for issues"
+	@echo "  lint           Run golangci-lint to find issues"
 	@echo "  help           Show this help message"
 	@echo ""

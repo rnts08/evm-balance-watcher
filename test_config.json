@@ -9,7 +9,8 @@
     {
       "name": "Ethereum",
       "rpc_urls": [
-        "https://cloudflare-eth.com"
+        "https://cloudflare-eth.com",
+	"wss://ethereum-rpc.publicnode.com"
       ],
       "symbol": "ETH",
       "coingecko_id": "ethereum",
