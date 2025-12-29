@@ -1,7 +1,10 @@
 package main
 
 import (
+	"encoding/json"
 	"math/big"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
 )
@@ -218,5 +221,269 @@ func TestGetPrioritizedRPCs(t *testing.T) {
 	}
 	if fastIdx == -1 || slowIdx == -1 || fastIdx > slowIdx {
 		t.Errorf("Expected rpc_fast before rpc_slow, got %v", got)
+	}
+}
+
+func TestFetchChainData_Integration(t *testing.T) {
+	// Mock Server
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var req struct {
+			ID     int           `json:"id"`
+			Method string        `json:"method"`
+			Params []interface{} `json:"params"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, "bad request", http.StatusBadRequest)
+			return
+		}
+
+		var result interface{}
+		switch req.Method {
+		case "eth_blockNumber":
+			result = "0x1000" // Block 4096
+		case "eth_getBalance":
+			// Return 2.5 ETH: 2.5 * 10^18 = 2500000000000000000
+			// Hex: 0x22B1C8C1227A0000
+			result = "0x22B1C8C1227A0000"
+		case "eth_call":
+			// Token balance. Assume 500 tokens with 6 decimals.
+			// 500 * 10^6 = 500,000,000 = 0x1DCD6500
+			// Padded to 32 bytes (64 hex chars)
+			result = "0x000000000000000000000000000000000000000000000000000000001dcd6500"
+		default:
+			result = "0x0"
+		}
+
+		resp := map[string]interface{}{
+			"jsonrpc": "2.0",
+			"id":      req.ID,
+			"result":  result,
+		}
+		json.NewEncoder(w).Encode(resp)
+	}))
+	defer server.Close()
+
+	// Setup
+	chain := ChainConfig{
+		Name:    "MockChain",
+		RPCURLs: []string{server.URL},
+		Tokens: []TokenConfig{
+			{Symbol: "TEST", Address: "0x1234567890123456789012345678901234567890", Decimals: 6},
+		},
+	}
+	accounts := []*accountState{
+		{address: "0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B"},
+	}
+
+	// Execute
+	cmd := fetchChainData(chain, accounts)
+	msg := cmd()
+
+	// Assert
+	dataMsg, ok := msg.(chainDataMsg)
+	if !ok {
+		t.Fatalf("Expected chainDataMsg, got %T", msg)
+	}
+
+	if dataMsg.err != nil {
+		t.Fatalf("fetchChainData returned error: %v", dataMsg.err)
+	}
+
+	if len(dataMsg.results) != 1 {
+		t.Fatalf("Expected 1 result, got %d", len(dataMsg.results))
+	}
+
+	res := dataMsg.results[0]
+
+	// Check Native Balance (2.5)
+	expectedBal := 2.5
+	gotBal, _ := res.balance.Float64()
+	if gotBal != expectedBal {
+		t.Errorf("Expected balance %f, got %f", expectedBal, gotBal)
+	}
+
+	// Check Token Balance (500)
+	expectedToken := 500.0
+	gotToken, _ := res.tokenBalances["TEST"].Float64()
+	if gotToken != expectedToken {
+		t.Errorf("Expected token balance %f, got %f", expectedToken, gotToken)
+	}
+}
+
+func TestFetchGasPrice_Integration(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// eth_gasPrice
+		resp := map[string]interface{}{
+			"jsonrpc": "2.0",
+			"id":      1,
+			"result":  "0x4a817c800", // 20 Gwei (20 * 10^9 = 20,000,000,000)
+		}
+		json.NewEncoder(w).Encode(resp)
+	}))
+	defer server.Close()
+
+	cmd := fetchGasPrice([]string{server.URL})
+	msg := cmd()
+
+	gasMsg, ok := msg.(gasPriceMsg)
+	if !ok {
+		t.Fatalf("Expected gasPriceMsg, got %T", msg)
+	}
+	if gasMsg.err != nil {
+		t.Fatalf("fetchGasPrice error: %v", gasMsg.err)
+	}
+
+	// 20 Gwei = 20,000,000,000 Wei
+	expected := int64(20000000000)
+	if gasMsg.price.Int64() != expected {
+		t.Errorf("Expected gas price %d, got %s", expected, gasMsg.price.String())
+	}
+}
+
+func TestFetchEthPrice_Integration(t *testing.T) {
+	// Mock Server
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Expect URL to contain the ID
+		response := map[string]map[string]float64{
+			"ethereum": {"usd": 2500.50},
+		}
+		json.NewEncoder(w).Encode(response)
+	}))
+	defer server.Close()
+
+	// Swap URL
+	originalURL := coinGeckoBaseURL
+	coinGeckoBaseURL = server.URL
+	defer func() { coinGeckoBaseURL = originalURL }()
+
+	// Execute
+	cmd := fetchEthPrice("ethereum")
+	msg := cmd()
+
+	// Assert
+	pMsg, ok := msg.(priceMsg)
+	if !ok {
+		t.Fatalf("Expected priceMsg, got %T", msg)
+	}
+	if pMsg.err != nil {
+		t.Fatalf("Unexpected error: %v", pMsg.err)
+	}
+	if pMsg.price != 2500.50 {
+		t.Errorf("Expected price 2500.50, got %f", pMsg.price)
+	}
+}
+
+func TestFetchChainData_RPCError(t *testing.T) {
+	// Mock Server that returns 500 Error to simulate RPC failure
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+	}))
+	defer server.Close()
+
+	chain := ChainConfig{
+		Name:    "FailChain",
+		RPCURLs: []string{server.URL},
+	}
+	accounts := []*accountState{{address: "0x123"}}
+
+	cmd := fetchChainData(chain, accounts)
+	msg := cmd()
+
+	dMsg, ok := msg.(chainDataMsg)
+	if !ok {
+		t.Fatalf("Expected chainDataMsg, got %T", msg)
+	}
+
+	if dMsg.err == nil {
+		t.Error("Expected error due to RPC failure, got nil")
+	}
+	if len(dMsg.failedRPCs) == 0 {
+		t.Error("Expected failedRPCs to be populated")
+	}
+}
+
+func TestFetchChainData_RPCFailover(t *testing.T) {
+	// 1. Bad Server (Simulates failure)
+	badServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+	}))
+	defer badServer.Close()
+
+	// 2. Good Server (Simulates success)
+	goodServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var req struct {
+			ID     int    `json:"id"`
+			Method string `json:"method"`
+		}
+		_ = json.NewDecoder(r.Body).Decode(&req)
+
+		var result interface{}
+		switch req.Method {
+		case "eth_getBlockByNumber":
+			// Minimal header fields required by go-ethereum
+			result = map[string]interface{}{
+				"number":           "0x1000",
+				"hash":             "0x0000000000000000000000000000000000000000000000000000000000000001",
+				"parentHash":       "0x0000000000000000000000000000000000000000000000000000000000000002",
+				"timestamp":        "0x5f5e1000",
+				"miner":            "0x0000000000000000000000000000000000000000",
+				"gasLimit":         "0x1",
+				"gasUsed":          "0x0",
+				"difficulty":       "0x0",
+				"extraData":        "0x",
+				"mixHash":          "0x0000000000000000000000000000000000000000000000000000000000000000",
+				"nonce":            "0x0000000000000000",
+				"stateRoot":        "0x0000000000000000000000000000000000000000000000000000000000000000",
+				"receiptsRoot":     "0x0000000000000000000000000000000000000000000000000000000000000000",
+				"transactionsRoot": "0x0000000000000000000000000000000000000000000000000000000000000000",
+				"logsBloom":        "0x00",
+			}
+		case "eth_getBalance":
+			result = "0x22B1C8C1227A0000" // 2.5 ETH
+		default:
+			result = "0x0"
+		}
+
+		resp := map[string]interface{}{
+			"jsonrpc": "2.0",
+			"id":      req.ID,
+			"result":  result,
+		}
+		json.NewEncoder(w).Encode(resp)
+	}))
+	defer goodServer.Close()
+
+	// 3. Setup Chain with Bad RPC first, then Good RPC
+	chain := ChainConfig{
+		Name:    "FailoverChain",
+		RPCURLs: []string{badServer.URL, goodServer.URL},
+	}
+	accounts := []*accountState{{address: "0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B"}}
+
+	// 4. Execute
+	cmd := fetchChainData(chain, accounts)
+	msg := cmd()
+
+	// 5. Assert
+	dMsg, ok := msg.(chainDataMsg)
+	if !ok {
+		t.Fatalf("Expected chainDataMsg, got %T", msg)
+	}
+
+	// Should have succeeded eventually
+	if len(dMsg.results) != 1 {
+		t.Errorf("Expected 1 result, got %d", len(dMsg.results))
+	} else {
+		val, _ := dMsg.results[0].balance.Float64()
+		if val != 2.5 {
+			t.Errorf("Expected balance 2.5, got %f", val)
+		}
+	}
+
+	// Should have recorded the failed RPC
+	if len(dMsg.failedRPCs) != 1 {
+		t.Errorf("Expected 1 failed RPC, got %d", len(dMsg.failedRPCs))
+	} else if dMsg.failedRPCs[0] != badServer.URL {
+		t.Errorf("Expected failed RPC to be %s, got %s", badServer.URL, dMsg.failedRPCs[0])
 	}
 }

@@ -35,6 +35,8 @@ import (
 // Version is injected at build time via -ldflags
 var Version = "dev"
 
+var coinGeckoBaseURL = "https://api.coingecko.com/api/v3"
+
 // --- Styles ---
 var (
 	subtleStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("241"))
@@ -2926,7 +2928,7 @@ func fetchEthPrice(coinID string) tea.Cmd {
 			return priceMsg{coinID: coinID, price: 0}
 		}
 		client := &http.Client{Timeout: 10 * time.Second}
-		url := fmt.Sprintf("https://api.coingecko.com/api/v3/simple/price?ids=%s&vs_currencies=usd", coinID)
+		url := fmt.Sprintf("%s/simple/price?ids=%s&vs_currencies=usd", coinGeckoBaseURL, coinID)
 		resp, err := client.Get(url)
 		if err != nil {
 			return priceMsg{coinID: coinID, err: err}

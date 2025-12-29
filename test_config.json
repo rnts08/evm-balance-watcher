@@ -1,0 +1,26 @@
+{
+  "addresses": [
+    {
+      "address": "0x0000000000000000000000000000000000000000",
+      "name": "Test Wallet"
+    }
+  ],
+  "chains": [
+    {
+      "name": "Ethereum",
+      "rpc_urls": [
+        "https://cloudflare-eth.com"
+      ],
+      "symbol": "ETH",
+      "coingecko_id": "ethereum",
+      "chain_id": 1,
+      "tokens": []
+    }
+  ],
+  "selected_chain": "Ethereum",
+  "privacy_timeout_seconds": 60,
+  "fiat_decimals": 2,
+  "token_decimals": 4,
+  "auto_cycle_enabled": false,
+  "auto_cycle_interval_seconds": 15
+}
