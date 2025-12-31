@@ -229,7 +229,7 @@ This project is open source and available under the GNU License.
 
 ***ETH/ERC20:**- 0x968cC7D93c388614f620Ef812C5fdfe64029B92d
 
-***SOL:**- 68L4XzSbRUaNE4UnxEd8DweSWEoiMQi6uygzERZLbXDw
+***SOL:**- HB2o6q6vsW5796U5y7NxNqA7vYZW1vuQjpAHDo7FAMG8
 
 ***BTC:**- bc1qkmzc6d49fl0edyeynezwlrfqv486nmk6p5pmta
 
