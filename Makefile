@@ -8,7 +8,7 @@ GOVET=$(GOCMD) vet ./...
 GORUN=$(GOCMD) run
 
 # Binary Name
-BINARY_NAME=eth-balance-tui
+BINARY_NAME=evmbal
 
 # Build flags
 LDFLAGS = -ldflags="-s -w -buildid= -X main.Version=$(VERSION)"

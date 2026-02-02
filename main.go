@@ -1922,9 +1922,9 @@ func (m model) View() string {
 		}
 
 		// Construct the UI pieces
-		title := fmt.Sprintf("%s Balance Monitor", activeChain.Name)
+		title := fmt.Sprintf("EVM Balance Watcher - %s", activeChain.Name)
 		if len(m.accounts) > 1 {
-			title = fmt.Sprintf("%s Balance Monitor (%d/%d)", activeChain.Name, m.activeIdx+1, len(m.accounts))
+			title = fmt.Sprintf("EVM Balance Watcher - %s (%d/%d)", activeChain.Name, m.activeIdx+1, len(m.accounts))
 		}
 		header := titleStyle.Render(title)
 		addrStr := activeAcc.address

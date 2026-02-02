@@ -1,4 +1,4 @@
-# ETH Balance TUI
+# EVM Balance Watcher
 
 ![Release Status](https://github.com/rnts08/eth-balance-tui/actions/workflows/release.yml/badge.svg)
 ![Test Status](https://github.com/rnts08/eth-balance-tui/actions/workflows/test.yml/badge.svg)
@@ -45,14 +45,14 @@ Ensure you have Go and `make` installed. A `Makefile` is provided to simplify co
 ### Building
 
 ```bash
-git clone https://github.com/rnts08/eth-balance-tui.git
-cd eth-balance-tui
+git clone https://github.com/rnts08/evmbal.git
+cd evmbal
 make build
 ```
 
 ### Configuration
 
-1. Create a `config.json` file. You can place it in your home directory as `~/.eth-balance-tui.json` or provide a path at runtime using the `-config` flag.
+1. Create a `config.json` file. You can place it in your home directory as `~/.evmbal.json` or provide a path at runtime using the `-config` flag.
 2. Use the example below as a starting point.
 
 ### Configuration example
@@ -121,13 +121,13 @@ The application is configured using a JSON file. Here is an example structure:
 ### Running
 
 ```bash
-./eth-balance-tui
+./evmbal
 ```
 
 Or with a custom config path:
 
 ```bash
-./eth-balance-tui -config /path/to/your/config.json
+./evmbal -config /path/to/your/config.json
 ```
 
 ## Keybindings

@@ -1,4 +1,4 @@
-module eth-balance-tui
+module evmbal
 
 go 1.24.0
 
