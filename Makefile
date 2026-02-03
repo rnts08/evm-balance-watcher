@@ -129,5 +129,8 @@ help:
 	@echo "  fmt            Format the source code"
 	@echo "  vet            Run go vet to check for issues"
 	@echo "  lint           Run golangci-lint to find issues"
+	@echo "  mobile-setup   Install mobile dependencies and check for EAS CLI"
+	@echo "  mobile-apk     Build Android APK locally for sideloading"
+	@echo "  mobile-ipa     Build iOS IPA locally for sideloading (requires Mac/Xcode)"
 	@echo "  help           Show this help message"
 	@echo ""
