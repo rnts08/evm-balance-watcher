@@ -17,7 +17,7 @@ BUILDFLAGS = -trimpath $(LDFLAGS)
 # Release version - can be overridden e.g. `make release VERSION=v1.0.0`
 VERSION ?= $(shell cat VERSION | tr -d '[:space:]')
 
-.PHONY: all build run clean test unittest fmt vet lint help cross-compile release bump
+.PHONY: all build run clean test unittest fmt vet lint help cross-compile release bump mobile-apk mobile-ipa mobile-setup
 
 all: build
 
@@ -95,6 +95,22 @@ vet:
 lint:
 	@echo "Linting code..."
 	@golangci-lint run
+
+# Mobile builds (requires EAS CLI: npm install -g eas-cli)
+mobile-setup:
+	@echo "Installing mobile dependencies..."
+	cd mobile-app && npm install
+	@echo "Ensuring EAS CLI is available..."
+	@npx eas-cli --version || (echo "EAS CLI not found. Please install it with: npm install -g eas-cli" && exit 1)
+
+mobile-apk:
+	@echo "Building Android APK locally for sideloading..."
+	cd mobile-app && npx eas-cli build --platform android --local --profile preview
+
+mobile-ipa:
+	@echo "Building iOS IPA locally for sideloading..."
+	@echo "Note: This requires a Mac with Xcode and appropriate Apple Developer credentials."
+	cd mobile-app && npx eas-cli build --platform ios --local --profile preview
 
 # Help
 help:

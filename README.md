@@ -1,8 +1,8 @@
 # EVM Balance Watcher
 
-![Release Status](https://github.com/rnts08/eth-balance-tui/actions/workflows/release.yml/badge.svg)
-![Test Status](https://github.com/rnts08/eth-balance-tui/actions/workflows/test.yml/badge.svg)
-![Format Status](https://github.com/rnts08/eth-balance-tui/actions/workflows/format.yml/badge.svg)
+![Release Status](https://github.com/rnts08/evmbal/actions/workflows/release.yml/badge.svg)
+![Test Status](https://github.com/rnts08/evmbal/actions/workflows/test.yml/badge.svg)
+![Format Status](https://github.com/rnts08/evmbal/actions/workflows/format.yml/badge.svg)
 
 A comprehensive, terminal-based UI for monitoring balances and transactions on Ethereum and other EVM-compatible chains.
 A terminal user interface for tracking Ethereum and EVM chain balances.
@@ -32,7 +32,7 @@ A terminal user interface for tracking Ethereum and EVM chain balances.
   - **Privacy Mode:*- Obfuscates all sensitive values and addresses, with an automatic inactivity timeout.
   - **Auto-Cycle:*- Automatically cycle through monitored addresses at a configurable interval, with a visual countdown and pause-on-interaction.
 - **Robust & Configurable:**
-  - Highly configurable via a `config.json` file.
+  - Highly configurable via a `.evmbal.json` file.
   - Intelligent RPC handling with cooldowns and automatic prioritization based on latency.
   - Configuration testing, validation, and backup/restore functionality.
 
@@ -52,7 +52,7 @@ make build
 
 ### Configuration
 
-1. Create a `config.json` file. You can place it in your home directory as `~/.evmbal.json` or provide a path at runtime using the `-config` flag.
+1. Create a `.evmbal.json` file. You can place it in your home directory as `~/.evmbal.json` or provide a path at runtime using the `-config` flag.
 2. Use the example below as a starting point.
 
 ### Configuration example
