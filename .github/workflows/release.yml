@@ -27,7 +27,7 @@ jobs:
       - name: Build and Test Binary
         run: |
           make build
-          ./eth-balance-tui -config test_config.json -test
+          ./evmbal -config test_config.json -test
 
   release:
     name: Build and Release
