@@ -1,0 +1,42 @@
+name: Mobile Build
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 🏗 Setup repo
+        uses: actions/checkout@v4
+
+      - name: 🏗 Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: mobile-app/package-lock.json
+
+      - name: 🏗 Setup EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: 📦 Install dependencies
+        run: |
+          cd mobile-app
+          npm install --legacy-peer-deps
+
+      - name: 🚀 Build Android APK (Preview)
+        run: |
+          cd mobile-app
+          eas build --platform android --profile preview --non-interactive
+
+      - name: 🚀 Build iOS IPA (Preview)
+        run: |
+          cd mobile-app
+          eas build --platform ios --profile preview --non-interactive
