@@ -1,11 +1,13 @@
 import React from 'react';
-import { View, Text, ScrollView, RefreshControl } from 'react-native';
+import { View, Text, ScrollView, RefreshControl, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 import { useStore } from '../../src/store/useStore';
 import { BalanceCard } from '../../src/components/BalanceCard';
-import { Activity, Bell } from 'lucide-react-native';
+import { Activity, Bell, Wallet } from 'lucide-react-native';
 
 export default function Dashboard() {
+    const router = useRouter();
     const accounts = useStore((state) => state.accounts);
     const isConnected = useStore((state) => state.isConnected);
     const lastUpdate = useStore((state) => state.lastUpdate);
@@ -40,12 +42,30 @@ export default function Dashboard() {
             >
                 <View className="py-2">
                     {accounts.length === 0 ? (
-                        <View className="h-64 items-center justify-center opacity-50">
-                            <Text className="text-muted-foreground text-center">
-                                Connecting to backend...{"\n"}
-                                If this takes too long, check if the server is running.
-                            </Text>
-                        </View>
+                        isConnected ? (
+                            <View className="h-[60vh] items-center justify-center px-4">
+                                <View className="bg-primary/10 p-6 rounded-full mb-6">
+                                    <Wallet size={48} color="#3b82f6" />
+                                </View>
+                                <Text className="text-foreground text-2xl font-bold text-center mb-2">Welcome to EVM Bal</Text>
+                                <Text className="text-muted-foreground text-center mb-8">
+                                    Start monitoring your balances by adding your first wallet address.
+                                </Text>
+                                <TouchableOpacity
+                                    onPress={() => router.push('/add-address')}
+                                    className="bg-primary px-8 py-4 rounded-2xl shadow-lg shadow-primary/30"
+                                >
+                                    <Text className="text-white font-bold text-lg">Add Your First Address</Text>
+                                </TouchableOpacity>
+                            </View>
+                        ) : (
+                            <View className="h-64 items-center justify-center opacity-50">
+                                <Text className="text-muted-foreground text-center">
+                                    Connecting to backend...{"\n"}
+                                    If this takes too long, check if the server is running.
+                                </Text>
+                            </View>
+                        )
                     ) : (
                         accounts.map((acc, idx) => (
                             <BalanceCard key={acc.address + idx} account={acc} />
