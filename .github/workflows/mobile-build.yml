@@ -34,9 +34,16 @@ jobs:
       - name: 🚀 Build Android APK (Preview)
         run: |
           cd mobile-app
-          eas build --platform android --profile preview --non-interactive
+          eas build --platform android --profile preview --non-interactive --no-wait
 
-      - name: 🚀 Build iOS IPA (Preview)
+      - name: 🚀 Build iOS Simulator (Preview)
         run: |
           cd mobile-app
-          eas build --platform ios --profile preview --non-interactive
+          eas build --platform ios --profile preview --non-interactive --no-wait
+
+      - name: 📝 Final Instructions
+        run: |
+          echo "Builds have been triggered on EAS!"
+          echo "You can check the progress at https://expo.dev/accounts/timh/projects/mobile-app/builds"
+          echo "Android: Once finished, download the .apk"
+          echo "iOS: Once finished, download the .tar.gz (Simulator build)"
